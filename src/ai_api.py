@@ -1,0 +1,124 @@
+import requests
+import json
+import os
+import ollama as ol
+import gradio_client as gc
+import asyncio, asyncvnc
+from PIL import Image
+
+class AiApi():
+    def __init__(self, url=None):
+        self.url = url
+        self.internal_map = {
+            "ollama": 'http://ollama:11434',
+            "asr": 'http://ai_api_asr:8002',
+            "tts": 'http://ai_api_tts:8002',
+            "voicereco": 'http://ai_api_voicereco:8002',
+            "facereco": 'http://ai_api_facereco:8002',
+            "sandbox": "ai_sandbox:5901"
+        }
+        self.external_map = {
+            "ollama": '{}:8060'.format(url),
+            "asr": '{}:8063'.format(url),
+            "tts": '{}:8064'.format(url),
+            "voicereco": '{}:8065'.format(url),
+            "facereco": '{}:8066'.format(url),
+            "sandbox": '{}:8067'.format(url)
+        }
+        self.client = {
+            "ollama": ol.Client(host=self.get_api_url("ollama")),
+            "asr": gc.Client(self.get_api_url("asr")),
+            "tts": gc.Client(self.get_api_url("tts")),
+            "voicereco": gc.Client(self.get_api_url("voicereco")),
+            "facereco": gc.Client(self.get_api_url("facereco")),
+        }
+
+    def get_api_url(self, name):
+        """
+        Build the selected api url
+        """
+        if self.url:
+            return self.external_map.get(name)
+        else:
+            return self.internal_map.get(name)
+
+
+    def get_client(self, name):
+        client = self.client.get(name)
+        if client:
+            return client
+        else:
+            raise Exception("Error {} client not found".format(name))
+
+
+    def get_api_settings(self, name):
+        apis = ["asr", "tts", "voicereco", "facereco"]
+        assert name in apis, "name must be in {}".format(apis)
+        return self.get_client(name).predict(api_name="/get_settings")
+
+
+    def set_asr_task(self, task="transcribe"):
+        tasks = ["transcribe", "translate"]
+        assert task in tasks, "task must be in {}".format(tasks)
+        value = task == "translate"
+        self.get_client("asr").predict(value=value, api_name="/set_asr_task")
+
+
+    def set_tts_lang(self, lang="en"):
+        langs = ["en", "fr-fr"]
+        assert lang in langs, "lang must be in {}".format(langs)
+        self.get_client("tts").predict(value=lang, api_name="/set_tts_language")
+
+
+    def set_tts_clone(self, value=False):
+        self.get_client("tts").predict(value=value, api_name="/set_tts_clone")
+
+
+    def call_tts(self, text, wait=True):
+        if wait:
+            data = self.get_client("tts").predict(message=text, api_name="/chat_request")
+            output = data.get("value")
+            return self.fetch_tts_file(output)
+        else:
+            return self.get_client("tts").submit(message=text, api_name="/chat_request")
+
+
+    def fetch_tts_file(self, remote_path):
+        output_url = "{}/file={}".format(self.get_api_url("tts"), remote_path)
+        head, tail = os.path.split(remote_path)
+        if not os.path.exists(head):
+            os.makedirs(head)
+        with requests.get(output_url, stream=True) as r:
+            r.raise_for_status()
+            with open(remote_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    # If you have chunk encoded response uncomment if
+                    # and set chunk_size parameter to None.
+                    #if chunk:
+                    f.write(chunk)
+        return remote_path
+
+
+    def call_asr(self, audio_file, wait=True):
+        if wait:
+            return self.get_client("asr").predict(audio_in=gc.file(audio_file), api_name="/audio_request")
+        else:
+            # runs the prediction in a background thread
+            return self.get_client("asr").submit(audio_in=gc.file(audio_file), api_name="/audio_request")
+
+
+    async def get_sandbox_screenshot(self, filename=None, client=None):
+        if client:
+            pixels = await client.screenshot()
+            image = Image.fromarray(pixels)
+            if filename:
+                image.save(filename)
+            return image
+        else:
+            url, port = self.get_api_url("sandbox").rsplit(":", 1)
+            async with asyncvnc.connect(url, int(port)) as client:
+                pixels = await client.screenshot()
+                image = Image.fromarray(pixels)
+                if filename:
+                    image.save(filename)
+                return image

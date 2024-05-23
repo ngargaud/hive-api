@@ -1,0 +1,5 @@
+requests
+ollama
+gradio_client
+asyncio
+asyncvnc

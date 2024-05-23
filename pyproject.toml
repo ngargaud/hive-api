@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "forge_api"
+version = "0.0.1"
+dependencies = [
+    "requests",
+    "ollama",
+    "gradio_client",
+    "asyncio",
+    "asyncvnc"
+]
+
+[project.urls]
+Homepage = "https://github.com/ngargaud/forge-api"
+Issues = "https://github.com/ngargaud/forge-api/issues"
