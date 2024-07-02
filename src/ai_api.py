@@ -74,6 +74,10 @@ class AiApi():
         self.get_client("tts").predict(value=value, api_name="/set_tts_clone")
 
 
+    def set_tts_clone_voice(self, filename):
+        self.get_client("tts").predict(filename=gc.file(filename), api_name="/set_file")
+
+
     def call_tts(self, text, wait=True):
         if wait:
             data = self.get_client("tts").predict(message=text, api_name="/chat_request")
