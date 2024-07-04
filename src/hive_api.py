@@ -6,7 +6,7 @@ import gradio_client as gc
 import asyncio, asyncvnc
 from PIL import Image
 
-class AiApi():
+class HiveApi():
     def __init__(self, url=None):
         self.url = url
         self.internal_map = {

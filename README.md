@@ -1,2 +1,2 @@
-# forge-api
-Python lib to interact with an IA forge
+# hive-api
+Python lib to interact with an IA hive
