@@ -26,11 +26,11 @@ class HiveApi():
             "sandbox": '{}:8067'.format(url)
         }
         self.client = {
-            "ollama": ol.Client(host=self.get_api_url("ollama")),
-            "asr": gc.Client(self.get_api_url("asr")),
-            "tts": gc.Client(self.get_api_url("tts")),
-            "voicereco": gc.Client(self.get_api_url("voicereco")),
-            "facereco": gc.Client(self.get_api_url("facereco")),
+            "ollama": ol.Client(host=self.get_api_url("ollama"), verify=False),
+            "asr": gc.Client(self.get_api_url("asr"), ssl_verify=False),
+            "tts": gc.Client(self.get_api_url("tts"), ssl_verify=False),
+            "voicereco": gc.Client(self.get_api_url("voicereco"), ssl_verify=False),
+            "facereco": gc.Client(self.get_api_url("facereco"), ssl_verify=False)
         }
 
     def get_api_url(self, name):
