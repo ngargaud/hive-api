@@ -56,6 +56,9 @@ class HiveApi():
         assert name in apis, "name must be in {}".format(apis)
         return self.get_client(name).predict(api_name="/get_settings")
 
+    def get_asr_language(self):
+        return self.get_client("asr").predict(api_name="/get_language")
+
 
     def set_asr_task(self, task="transcribe"):
         tasks = ["transcribe", "translate"]
