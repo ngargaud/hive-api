@@ -29,8 +29,8 @@ class HiveApi():
             "ollama": ol.Client(host=self.get_api_url("ollama"), verify=False),
             "asr": gc.Client(self.get_api_url("asr"), ssl_verify=False),
             "tts": gc.Client(self.get_api_url("tts"), ssl_verify=False),
-            "voicereco": gc.Client(self.get_api_url("voicereco"), ssl_verify=False),
-            "facereco": gc.Client(self.get_api_url("facereco"), ssl_verify=False)
+            # "voicereco": gc.Client(self.get_api_url("voicereco"), ssl_verify=False),
+            # "facereco": gc.Client(self.get_api_url("facereco"), ssl_verify=False)
         }
 
     def get_api_url(self, name):
@@ -52,7 +52,8 @@ class HiveApi():
 
 
     def get_api_settings(self, name):
-        apis = ["asr", "tts", "voicereco", "facereco"]
+        apis = ["asr", "tts"]
+        # apis = ["asr", "tts", "voicereco", "facereco"]
         assert name in apis, "name must be in {}".format(apis)
         return self.get_client(name).predict(api_name="/get_settings")
 
@@ -68,8 +69,10 @@ class HiveApi():
 
 
     def set_tts_lang(self, lang="en"):
+        if lang in ["fr"]:
+            lang = "fr-fr"
         langs = ["en", "fr-fr"]
-        assert lang in langs, "lang must be in {}".format(langs)
+        assert lang in langs, "lang {} must be in {}".format(lang, langs)
         self.get_client("tts").predict(value=lang, api_name="/set_tts_language")
 
 
@@ -78,7 +81,7 @@ class HiveApi():
 
 
     def set_tts_clone_voice(self, filename):
-        self.get_client("tts").predict(filename=gc.file(filename), api_name="/set_file")
+        self.get_client("tts").predict(filename=gc.handle_file(filename), api_name="/set_file")
 
 
     def call_tts(self, text, wait=True):
@@ -95,7 +98,7 @@ class HiveApi():
         head, tail = os.path.split(remote_path)
         if not os.path.exists(head):
             os.makedirs(head)
-        with requests.get(output_url, stream=True) as r:
+        with requests.get(output_url, stream=True, verify=False) as r:
             r.raise_for_status()
             with open(remote_path, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=8192):
@@ -108,10 +111,10 @@ class HiveApi():
 
     def call_asr(self, audio_file, wait=True):
         if wait:
-            return self.get_client("asr").predict(audio_in=gc.file(audio_file), api_name="/audio_request")
+            return self.get_client("asr").predict(audio_in=gc.handle_file(audio_file), api_name="/audio_request")
         else:
             # runs the prediction in a background thread
-            return self.get_client("asr").submit(audio_in=gc.file(audio_file), api_name="/audio_request")
+            return self.get_client("asr").submit(audio_in=gc.handle_file(audio_file), api_name="/audio_request")
 
 
     async def get_sandbox_screenshot(self, filename=None, client=None):

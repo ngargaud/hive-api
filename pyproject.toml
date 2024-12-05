@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "hive_api"
 version = "0.0.1"
 dependencies = [
-    "gradio_client==1.5.0",
+    "gradio_client",
     "requests",
     "ollama",
     "asyncio",
