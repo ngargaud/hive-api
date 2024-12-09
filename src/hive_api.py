@@ -57,6 +57,7 @@ class HiveApi():
         assert name in apis, "name must be in {}".format(apis)
         return self.get_client(name).predict(api_name="/get_settings")
 
+
     def get_asr_language(self):
         return self.get_client("asr").predict(api_name="/get_language")
 
@@ -72,7 +73,8 @@ class HiveApi():
         if lang in ["fr"]:
             lang = "fr-fr"
         langs = ["en", "fr-fr"]
-        assert lang in langs, "lang {} must be in {}".format(lang, langs)
+        if not lang in langs:
+            print("WARNING lang {} must be in {}".format(lang, langs))
         self.get_client("tts").predict(value=lang, api_name="/set_tts_language")
 
 
