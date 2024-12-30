@@ -29,8 +29,8 @@ class HiveApi():
             "ollama": ol.Client(host=self.get_api_url("ollama"), verify=False),
             "asr": gc.Client(self.get_api_url("asr"), ssl_verify=False),
             "tts": gc.Client(self.get_api_url("tts"), ssl_verify=False),
-            # "voicereco": gc.Client(self.get_api_url("voicereco"), ssl_verify=False),
-            # "facereco": gc.Client(self.get_api_url("facereco"), ssl_verify=False)
+            "voicereco": gc.Client(self.get_api_url("voicereco"), ssl_verify=False),
+            "facereco": gc.Client(self.get_api_url("facereco"), ssl_verify=False)
         }
 
     def get_api_url(self, name):
@@ -52,8 +52,8 @@ class HiveApi():
 
 
     def get_api_settings(self, name):
-        apis = ["asr", "tts"]
-        # apis = ["asr", "tts", "voicereco", "facereco"]
+        # apis = ["asr", "tts"]
+        apis = ["asr", "tts", "voicereco", "facereco"]
         assert name in apis, "name must be in {}".format(apis)
         return self.get_client(name).predict(api_name="/get_settings")
 
@@ -134,3 +134,19 @@ class HiveApi():
                 if filename:
                     image.save(filename)
                 return image
+
+
+    def call_voice_reco(self, filename, wait=True):
+        if wait:
+            return self.get_client("voicereco").predict(filename=gc.handle_file(filename), api_name="/audio_request")
+        else:
+            # runs the prediction in a background thread
+            return self.get_client("voicereco").submit(filename=gc.handle_file(filename), api_name="/audio_request")
+
+
+    def call_face_reco(self, filename, wait=True):
+        if wait:
+            return self.get_client("facereco").predict(filename=gc.handle_file(filename), api_name="/set_file")
+        else:
+            # runs the prediction in a background thread
+            return self.get_client("facereco").submit(filename=gc.handle_file(filename), api_name="/set_file")
