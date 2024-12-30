@@ -144,6 +144,15 @@ class HiveApi():
             return self.get_client("voicereco").submit(filename=gc.handle_file(filename), api_name="/audio_request")
 
 
+    def call_voice_compare(self, embed, embed_ref, wait=True):
+        if wait:
+            return self.get_client("voicereco").predict(embedding=embed, embedding_ref=embed_ref, api_name="/compare_embeddings")
+        else:
+            # runs the prediction in a background thread
+            return self.get_client("voicereco").submit(embedding=embed, embedding_ref=embed_ref, api_name="/compare_embeddings")
+
+
+
     def call_face_reco(self, filename, wait=True):
         if wait:
             return self.get_client("facereco").predict(filename=gc.handle_file(filename), api_name="/set_file")
