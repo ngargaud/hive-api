@@ -1,5 +1,6 @@
 gradio_client
 paho-mqtt
+langgraph
 requests
 ollama
 pillow
