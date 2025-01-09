@@ -1,5 +1,6 @@
 gradio_client==1.5.0
 paho-mqtt
+langgraph
 requests
 ollama
 asyncio
