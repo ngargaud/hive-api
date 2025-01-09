@@ -8,6 +8,7 @@ version = "0.0.6"
 dependencies = [
     "gradio_client",
     "paho-mqtt",
+    "langgraph",
     "requests",
     "ollama"
     "pillow"
