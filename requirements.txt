@@ -1,4 +1,5 @@
 gradio_client==1.5.0
+langgraph
 requests
 ollama
 asyncio
