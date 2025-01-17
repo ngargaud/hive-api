@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 import os
 import ollama as ol
 import gradio_client as gc
@@ -111,14 +112,6 @@ class HiveApi():
         return remote_path
 
 
-    def call_asr(self, audio_file, wait=True):
-        if wait:
-            return self.get_client("asr").predict(audio_in=gc.handle_file(audio_file), api_name="/audio_request")
-        else:
-            # runs the prediction in a background thread
-            return self.get_client("asr").submit(audio_in=gc.handle_file(audio_file), api_name="/audio_request")
-
-
     async def get_sandbox_screenshot(self, filename=None, client=None):
         if client:
             pixels = await client.screenshot()
@@ -136,12 +129,12 @@ class HiveApi():
                 return image
 
 
-    def call_voice_reco(self, filename, wait=True):
+    def call_asr(self, filename, wait=True):
         if wait:
-            return self.get_client("voicereco").predict(filename=gc.handle_file(filename), api_name="/audio_request")
+            return self.get_client("asr").predict(filename=gc.handle_file(filename), task="transcribe", api_name="/process")
         else:
             # runs the prediction in a background thread
-            return self.get_client("voicereco").submit(filename=gc.handle_file(filename), api_name="/audio_request")
+            return self.get_client("asr").submit(filename=gc.handle_file(filename), task="transcribe", api_name="/process")
 
 
     def call_voice_compare(self, embed, embed_ref, wait=True):
@@ -152,10 +145,44 @@ class HiveApi():
             return self.get_client("voicereco").submit(embedding=embed, embedding_ref=embed_ref, api_name="/compare_embeddings")
 
 
+    def call_voice_reco(self, filename, wait=True):
+        if wait:
+            return self.get_client("voicereco").predict(filename=gc.handle_file(filename), api_name="/process")
+        else:
+            # runs the prediction in a background thread
+            return self.get_client("voicereco").submit(filename=gc.handle_file(filename), api_name="/process")
+
 
     def call_face_reco(self, filename, wait=True):
         if wait:
-            return self.get_client("facereco").predict(filename=gc.handle_file(filename), api_name="/set_file")
+            return self.get_client("facereco").predict(filename=gc.handle_file(filename), api_name="/process")
         else:
             # runs the prediction in a background thread
-            return self.get_client("facereco").submit(filename=gc.handle_file(filename), api_name="/set_file")
+            return self.get_client("facereco").submit(filename=gc.handle_file(filename), api_name="/process")
+
+
+    def create_metadata(self, audio=None, image=None):
+        start = time.time()
+        results = {}
+        if audio:
+            audio_process = self.call_asr(audio, wait=False)
+            voice_process = self.call_voice_reco(audio, wait=False)
+        if image:
+            face_process =  self.call_face_reco(image, wait=False)
+
+        if audio:
+            try:
+                results["asr"] = json.loads(audio_process.result())
+            except:
+                results["asr"] = audio_process.result()
+            try:
+                results["voices"] = json.loads(voice_process.result())
+            except:
+                results["voices"] = voice_process.result()
+        if image:
+            try:
+                results["faces"] = json.loads(face_process.result())
+            except:
+                results["faces"] = face_process.result()
+        print("[main]   metadata generation:", time.time() - start, "seconds")
+        return results
