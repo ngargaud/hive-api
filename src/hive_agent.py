@@ -95,8 +95,8 @@ class HiveAgent():
     def debug_node(self, state: AgentState, config):
         user = config["configurable"].get("user", "unknown")
         print("{}.debug_node() User {} request".format(self.name, user))
-        state["inner_thought"] = AIMessage(content="The user {} say <request summary>".format(user))
-        # state["messages"] = AIMessage(content="Can you provide more information?")
+        state["inner_thought"] = AIMessage(content="The user {} say <request summary>".format(user), id=0)
+        # state["messages"] = AIMessage(content="Can you provide more information?", id=0)
         return state
 
 
@@ -163,7 +163,7 @@ class HiveAgent():
         config = self.config
         thread_id = 0
         config["configurable"]["thread_id"] = thread_id # change it when the context or user changes
-        user_input = {"messages": [HumanMessage(content=metadata.get("text"))]}
+        user_input = {"messages": [HumanMessage(content=metadata.get("text"), id=0)]}
 
         for namespace, event in self.agent.stream(user_input, config, stream_mode="updates", debug=self.debug, subgraphs=self.subgraphs):
             print(namespace, event)
