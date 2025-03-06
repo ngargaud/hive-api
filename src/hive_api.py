@@ -4,6 +4,7 @@ import time
 import os
 import ollama as ol
 import gradio_client as gc
+import paho.mqtt.client as mqtt
 
 class HiveApi():
     def __init__(self, url=None):
@@ -19,6 +20,19 @@ class HiveApi():
             "reco": '{}:8038'.format(url)
         }
         self.clients = {}
+
+    def start_mqtt(self, on_connect=None, on_message=None):
+        if not self.url:
+            mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+            if on_connect:
+                mqttc.on_connect = on_connect
+            if on_message:
+                mqttc.on_message = on_message
+            mqttc.username_pw_set("writer", "test")
+            mqttc.connect("mqtt", 1882, 60)
+            self.client["mqtt"] = mqttc
+        else:
+            print("WARNING start_mqtt() only usable with internal url")
 
 
     def get_api_url(self, name):

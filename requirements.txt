@@ -1,3 +1,4 @@
 gradio_client
+paho-mqtt
 requests
 ollama
