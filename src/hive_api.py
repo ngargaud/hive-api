@@ -26,13 +26,8 @@ class HiveApi():
             "facereco": '{}:8066'.format(url),
             "sandbox": '{}:8067'.format(url)
         }
-        self.client = {
-            "ollama": ol.Client(host=self.get_api_url("ollama"), verify=False),
-            "asr": gc.Client(self.get_api_url("asr"), ssl_verify=False),
-            "tts": gc.Client(self.get_api_url("tts"), ssl_verify=False),
-            "voicereco": gc.Client(self.get_api_url("voicereco"), ssl_verify=False),
-            "facereco": gc.Client(self.get_api_url("facereco"), ssl_verify=False)
-        }
+        self.clients = {}
+
 
     def get_api_url(self, name):
         """
@@ -44,30 +39,53 @@ class HiveApi():
             return self.internal_map.get(name)
 
 
+    def create_client(self, name):
+        client = None
+        if name in ["asr", "tts", "voicereco", "facereco"]:
+            client = gc.Client(self.get_api_url(name), ssl_verify=False)
+        elif name in ["ollama"]:
+            client = ol.Client(host=self.get_api_url(name), verify=False)
+        if client and not name in self.clients:
+            self.clients[name] = client
+        return client
+
+
     def get_client(self, name):
-        client = self.client.get(name)
-        if client:
-            return client
-        else:
-            raise Exception("Error {} client not found".format(name))
+        try:
+            client = self.clients.get(name)
+            if client:
+                return client
+            else:
+                client = self.create_client(name)
+                if client:
+                    return client
+                raise Exception("Error {} client not found".format(name))
+        except Exception as e:
+            print(e)
 
 
     def get_api_settings(self, name):
         # apis = ["asr", "tts"]
         apis = ["asr", "tts", "voicereco", "facereco"]
         assert name in apis, "name must be in {}".format(apis)
-        return self.get_client(name).predict(api_name="/get_settings")
+        client = self.get_client(name)
+        if client:
+            return client.predict(api_name="/get_settings")
 
 
     def get_asr_language(self):
-        return self.get_client("asr").predict(api_name="/get_language")
+        client = self.get_client("asr")
+        if client:
+            return client.predict(api_name="/get_language")
 
 
     def set_asr_task(self, task="transcribe"):
         tasks = ["transcribe", "translate"]
         assert task in tasks, "task must be in {}".format(tasks)
         value = task == "translate"
-        self.get_client("asr").predict(value=value, api_name="/set_asr_task")
+        client = self.get_client("asr")
+        if client:
+            client.predict(value=value, api_name="/set_asr_task")
 
 
     def set_tts_lang(self, lang="en"):
@@ -76,24 +94,33 @@ class HiveApi():
         langs = ["en", "fr-fr"]
         if not lang in langs:
             print("WARNING lang {} must be in {}".format(lang, langs))
-        self.get_client("tts").predict(value=lang, api_name="/set_tts_language")
+        client = self.get_client("tts")
+        if client:
+            client.predict(value=lang, api_name="/set_tts_language")
 
 
     def set_tts_clone(self, value=False):
-        self.get_client("tts").predict(value=value, api_name="/set_tts_clone")
+        client = self.get_client("tts")
+        if client:
+            client.predict(value=value, api_name="/set_tts_clone")
 
 
     def set_tts_clone_voice(self, filename):
-        self.get_client("tts").predict(filename=gc.handle_file(filename), api_name="/set_file")
+        client = self.get_client("tts")
+        if client:
+            client.predict(filename=gc.handle_file(filename), api_name="/set_file")
 
 
     def call_tts(self, text, wait=True):
-        if wait:
-            data = self.get_client("tts").predict(message=text, api_name="/chat_request")
-            output = data.get("value")
-            return self.fetch_tts_file(output)
-        else:
-            return self.get_client("tts").submit(message=text, api_name="/chat_request")
+        client = self.get_client("tts")
+        if client:
+            if wait:
+                data = client.predict(message=text, api_name="/chat_request")
+                output = data.get("value")
+                return self.fetch_tts_file(output)
+            else:
+                return client.submit(message=text, api_name="/chat_request")
+        return None
 
 
     def fetch_tts_file(self, remote_path):
@@ -130,35 +157,43 @@ class HiveApi():
 
 
     def call_asr(self, filename, wait=True):
-        if wait:
-            return self.get_client("asr").predict(filename=gc.handle_file(filename), task="transcribe", api_name="/process")
-        else:
-            # runs the prediction in a background thread
-            return self.get_client("asr").submit(filename=gc.handle_file(filename), task="transcribe", api_name="/process")
+        client = self.get_client("asr")
+        if client:
+            if wait:
+                return client.predict(filename=gc.handle_file(filename), task="transcribe", api_name="/process")
+            else:
+                # runs the prediction in a background thread
+                return client.submit(filename=gc.handle_file(filename), task="transcribe", api_name="/process")
 
 
     def call_voice_compare(self, embed, embed_ref, wait=True):
-        if wait:
-            return self.get_client("voicereco").predict(embedding=embed, embedding_ref=embed_ref, api_name="/compare_embeddings")
-        else:
-            # runs the prediction in a background thread
-            return self.get_client("voicereco").submit(embedding=embed, embedding_ref=embed_ref, api_name="/compare_embeddings")
+        client = self.get_client("voicereco")
+        if client:
+            if wait:
+                return client.predict(embedding=embed, embedding_ref=embed_ref, api_name="/compare_embeddings")
+            else:
+                # runs the prediction in a background thread
+                return client.submit(embedding=embed, embedding_ref=embed_ref, api_name="/compare_embeddings")
 
 
     def call_voice_reco(self, filename, wait=True):
-        if wait:
-            return self.get_client("voicereco").predict(filename=gc.handle_file(filename), api_name="/process")
-        else:
-            # runs the prediction in a background thread
-            return self.get_client("voicereco").submit(filename=gc.handle_file(filename), api_name="/process")
+        client = self.get_client("voicereco")
+        if client:
+            if wait:
+                return client.predict(filename=gc.handle_file(filename), api_name="/process")
+            else:
+                # runs the prediction in a background thread
+                return client.submit(filename=gc.handle_file(filename), api_name="/process")
 
 
     def call_face_reco(self, filename, wait=True):
-        if wait:
-            return self.get_client("facereco").predict(filename=gc.handle_file(filename), api_name="/process")
-        else:
-            # runs the prediction in a background thread
-            return self.get_client("facereco").submit(filename=gc.handle_file(filename), api_name="/process")
+        client = self.get_client("facereco")
+        if client:
+            if wait:
+                return client.predict(filename=gc.handle_file(filename), api_name="/process")
+            else:
+                # runs the prediction in a background thread
+                return client.submit(filename=gc.handle_file(filename), api_name="/process")
 
 
     def create_metadata(self, audio=None, image=None):
@@ -171,15 +206,17 @@ class HiveApi():
             face_process =  self.call_face_reco(image, wait=False)
 
         if audio:
-            try:
-                results["asr"] = json.loads(audio_process.result())
-            except:
-                results["asr"] = audio_process.result()
-            try:
-                results["voices"] = json.loads(voice_process.result())
-            except:
-                results["voices"] = voice_process.result()
-        if image:
+            if audio_process:
+                try:
+                    results["asr"] = json.loads(audio_process.result())
+                except:
+                    results["asr"] = audio_process.result()
+            if voice_process:
+                try:
+                    results["voices"] = json.loads(voice_process.result())
+                except:
+                    results["voices"] = voice_process.result()
+        if image and face_process:
             try:
                 results["faces"] = json.loads(face_process.result())
             except:
