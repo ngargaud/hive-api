@@ -15,9 +15,9 @@ class HiveApi():
             "tts": 'http://ai_api_tts:8002'
         }
         self.external_map = {
-            "ollama": '{}:8060'.format(url),
-            "tts": '{}:8064'.format(url),
-            "reco": '{}:8065'.format(url)
+            "ollama": '{}:8036'.format(url),
+            "tts": '{}:8037'.format(url),
+            "reco": '{}:8038'.format(url)
         }
         self.clients = {}
 
