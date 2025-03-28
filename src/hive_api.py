@@ -4,7 +4,6 @@ import time
 import os
 import ollama as ol
 import gradio_client as gc
-from PIL import Image
 
 class HiveApi():
     def __init__(self, url=None):
